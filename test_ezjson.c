@@ -30,7 +30,17 @@ int main() {
 
     char value[256] = {0,};
 
-    json_type_t type = json_get_val_by_key(pairs, 10, value, "key2");
-    printf("value type : %d \n", type);
+    json_type_t type = 0;
+    type = json_get_val_by_key(pairs, 10, value, "key2");
+    printf("value type : %d  value:%s \n", type, value);
+
+    memset(value, 0, sizeof(value));
+    type = json_get_val_by_key(pairs, 10, value, "key3");
+    printf("value type : %d  value:%s \n", type, value);
+
+    memset(value, 0, sizeof(value));
+    type = json_get_val_by_key(pairs, 10, value, "key6");
+    printf("value type : %d  value:%s \n", type, value);
+
     return 0;
 }

@@ -233,16 +233,12 @@ json_type_t json_get_val_by_key(json_key_val_pair_t dst_pairs[], uint32_t pairs_
                 return JSON_TYPE_UNKNOWN;
             }
             val_p = *dst_pairs[i].val_start_p ;
-            if (val_p == '{') {
-                printf(" key:%s val_start_p: object \n", dst_pairs[i].key);
-                return JSON_TYPE_OBJ;
-            } else if (val_p == '"'){
-                printf(" key:%s val_start_p:%c  str.. \n", dst_pairs[i].key,  val_p);
-                return JSON_TYPE_VAL_STR;
-            } else {
-                printf(" key:%s val_start_p:%c  vall.. \n", dst_pairs[i].key, val_p);
-                return JSON_TYPE_VAL;
-            }
+            int val_len = dst_pairs[i].val_end_p - dst_pairs[i].val_start_p + 1;
+            strncpy(buf, dst_pairs[i].val_start_p, val_len);
+
+            if(val_p == '{') { return JSON_TYPE_OBJ; }
+            else if(val_p == '"') { return JSON_TYPE_VAL_STR; }
+            else { return JSON_TYPE_VAL; }
         }
         
     }
