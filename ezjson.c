@@ -68,15 +68,18 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
                     return false; // fail.. especially JSON_KEY status means wrong JSON format!
             }
 
+            brace_depth--;
+            
             //find key with brace value and fill end_p
             for(int j = pairs_count; j > 0; --j){
-                if(*dst_pairs[j].val_start_p  == '{' ) {
+                if(*dst_pairs[j].val_start_p  == '{' &&
+                    dst_pairs[j].depth == brace_depth) {
                     dst_pairs[j].val_end_p = pos;
-                    
+                    break;
                 }
             }
             
-            brace_depth--;
+            
             // OK start again
             state = JSON_INIT;
             if(brace_depth == -1) { 
@@ -199,8 +202,8 @@ void json_print_pairs(json_key_val_pair_t dst_pairs[], uint32_t pairs_max) {
         val_e = *dst_pairs[i].val_end_p;
 
         printf(" key:%s \n", dst_pairs[i].key);
-        printf(" val_p:%c \n", val_p);
-        printf(" val_e:%c \n", val_e);
+        // printf(" val_p:%c \n", val_p);
+        // printf(" val_e:%c \n", val_e);
         
         char val_buff[256] = {0, };
         int val_len = dst_pairs[i].val_end_p - dst_pairs[i].val_start_p + 1;
