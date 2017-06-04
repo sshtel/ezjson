@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "ezjson.h"
 
 #if 0
@@ -170,7 +171,7 @@ void json_print_pairs(json_key_val_pair_t dst_pairs[], uint32_t pairs_max) {
         val_p = *dst_pairs[i].val_start_p ;
         if (val_p == '{') {
             printf(" key:%s val_start_p: object  depth: %d \n", dst_pairs[i].key, dst_pairs[i].depth);
-        } else if (val_p == "\""){
+        } else if (val_p == '"'){
             printf(" key:%s val_start_p:%c depth : %d\n", dst_pairs[i].key,  val_p, dst_pairs[i].depth);
         } else {
             printf(" key:%s val_start_p:%c depth : %d\n", dst_pairs[i].key,  val_p, dst_pairs[i].depth);
@@ -183,7 +184,6 @@ json_type_t json_get_val_by_key(json_key_val_pair_t dst_pairs[], uint32_t pairs_
     int i;
     for( i = 0; i < pairs_max; ++i) {
         
-
         if(strcmp(dst_pairs[i].key, key_name) == 0) {
             char val_p = 0;
             if(dst_pairs[i].val_start_p == 0) {
@@ -204,4 +204,6 @@ json_type_t json_get_val_by_key(json_key_val_pair_t dst_pairs[], uint32_t pairs_
         }
         
     }
+    
+    return JSON_TYPE_UNKNOWN;
 }
