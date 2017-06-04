@@ -140,14 +140,14 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
                 }
                 case JSON_VALUE: {
                      // value start! go ahead
-                    dst_pairs[pairs_count].val_start_p = pos;
+                    dst_pairs[pairs_count].val_start_p = pos+1;
                     state = JSON_VALUE_IN_STR;
                     dst_pairs[pairs_count].depth = brace_depth;
                     continue; 
                 }
                 case JSON_VALUE_IN_STR: { 
                     state = JSON_VALUE_END;
-                    dst_pairs[pairs_count].val_end_p = pos;
+                    dst_pairs[pairs_count].val_end_p = pos-1;
                     continue; 
                 }
                 default: {
