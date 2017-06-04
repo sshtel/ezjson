@@ -25,9 +25,9 @@ enum awair_json_state {
 
 bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *string_buffer, uint32_t buffer_size) {
     int i = 0;
-    int32_t brace_depth = 0;
+    int32_t brace_depth = -1;
     int state = JSON_INIT;
-    uint32_t pairs_count = 0;
+    int32_t pairs_count = -1;
 
     char key_buffer[JSON_TREE_KEY_SIZE] = {0, };
     int32_t key_buffer_pos = 0;
@@ -37,34 +37,48 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
     {
         char *pos = string_buffer + i;
         char c = *(pos);
-        // printf("%c", c);
+        printf("------------>%c", c);
         
         if (isspace((int)c)) {
+            //when c is space, VAL_IN_VAL's end_p needs to be updated
+            if(state == JSON_VALUE_IN_VAL) {
+                dst_pairs[pairs_count].val_end_p = pos-1;
+                state = JSON_VALUE_END;
+            }
+            
             continue;
         } else if (c == '{') {
-            brace_depth++;
-            if(brace_depth == 1) { continue; } // Beginning of json
-
+            
+            if(brace_depth == -1) { brace_depth++; continue; } // Beginning of json
+            
             //save value as {
             dst_pairs[pairs_count].val_start_p = pos;
             state = JSON_INIT; //start obj again
             dst_pairs[pairs_count].depth = brace_depth;
-            pairs_count++;
-
-            
+            brace_depth++;
         } else if (c == '}') {
             switch(state) {
                 case JSON_INIT:
                 case JSON_VALUE_END:
-                case JSON_VALUE_IN_VAL:
                     break;
+                case JSON_VALUE_IN_VAL:{
+                    break;
+                }
                 default:
                     return false; // fail.. especially JSON_KEY status means wrong JSON format!
             }
+
+            //find key with brace value and fill end_p
+            for(int j = pairs_count; j > 0; --j){
+                if(*dst_pairs[j].val_start_p  == '{' ) {
+                    dst_pairs[j].val_end_p = pos;
+                }
+            }
+            
             brace_depth--;
             // OK start again
             state = JSON_INIT;
-            if(brace_depth == 0) { 
+            if(brace_depth == -1) { 
                 //end of parse
                 printf("JSON complete\n");
                 state = JSON_COMPLETE;
@@ -82,9 +96,15 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
             }
         } else if (c == ',') {
             printf("\n , state=%d \n", state);
+            if(state == JSON_VALUE_IN_VAL) {
+                dst_pairs[pairs_count].val_end_p = pos-1;
+            }
+
             switch(state) {
+                
                 case JSON_INIT:         // obj is done.. init again
-                case JSON_VALUE_END: { 
+                case JSON_VALUE_END: 
+                case JSON_VALUE_IN_VAL: { 
                     state = JSON_INIT; // pair is done.. init again
                     continue;
                 }
@@ -93,9 +113,11 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
         } else if (c == '"') {
              printf("\n \" state=%d \n", state);
             switch(state) {
-                case JSON_INIT:         { 
+                case JSON_INIT: { 
                     state = JSON_KEY; 
-                    sprintf(key_buffer, "%s", ""); 
+                    //increase pairs_count first
+                    pairs_count++;
+                    memset(key_buffer, 0, sizeof(key_buffer)); 
                     key_buffer_pos = 0;
                     continue;
                 }
@@ -105,22 +127,23 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
                     continue; 
                 } // key start
                 case JSON_KEY_IN_STR:   { 
+                     // key complete.
                     state = JSON_KEY_END; 
                     snprintf(dst_pairs[pairs_count].key, JSON_TREE_KEY_SIZE, "%s", key_buffer);
-                    sprintf(key_buffer, "%s", ""); 
+                    memset(key_buffer, 0, sizeof(key_buffer)); 
                     key_buffer_pos = 0;
                     continue; 
-                } // key complete.
-                case JSON_VALUE: { 
+                }
+                case JSON_VALUE: {
+                     // value start! go ahead
                     dst_pairs[pairs_count].val_start_p = pos;
                     state = JSON_VALUE_IN_STR;
                     dst_pairs[pairs_count].depth = brace_depth;
-                    pairs_count++;
                     continue; 
-                } // value start! go ahead
+                }
                 case JSON_VALUE_IN_STR: { 
                     state = JSON_VALUE_END;
-                    
+                    dst_pairs[pairs_count].val_end_p = pos;
                     continue; 
                 }
                 default: {
@@ -141,7 +164,6 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
                     dst_pairs[pairs_count].val_start_p = pos;
                     state = JSON_VALUE_IN_VAL;
                     dst_pairs[pairs_count].depth = brace_depth;
-                    pairs_count++;
                     continue; 
                 } //value which is not string
                 case JSON_KEY_IN_STR:   { 
@@ -149,7 +171,10 @@ bool json_parse(json_key_val_pair_t dst_pairs[], uint32_t pairs_max, char *strin
                     key_buffer_pos++;
                     continue;
                 } //store key!
-                case JSON_VALUE_IN_STR: { continue; }
+                case JSON_VALUE_IN_STR: 
+                case JSON_VALUE_IN_VAL: { 
+                    continue; 
+                }
                 default: { return false; }
             }
         }
@@ -164,17 +189,19 @@ void json_print_pairs(json_key_val_pair_t dst_pairs[], uint32_t pairs_max) {
     int i;
     for( i = 0; i < pairs_max; ++i) {
         char val_p = 0;
+        char val_e = 0;
         if(dst_pairs[i].val_start_p == 0) {
             printf("empty\n"); continue;
         }
         
-        val_p = *dst_pairs[i].val_start_p ;
+        val_p = *dst_pairs[i].val_start_p;
+        val_e = *dst_pairs[i].val_end_p;
         if (val_p == '{') {
-            printf(" key:%s val_start_p: object  depth: %d \n", dst_pairs[i].key, dst_pairs[i].depth);
+            printf(" key:%s val_start_p: %c end_p:%c depth: %d \n", dst_pairs[i].key, val_p, val_e, dst_pairs[i].depth);
         } else if (val_p == '"'){
-            printf(" key:%s val_start_p:%c depth : %d\n", dst_pairs[i].key,  val_p, dst_pairs[i].depth);
+            printf(" key:%s val_start_p:%c end_p:%c depth : %d\n", dst_pairs[i].key,  val_p, val_e, dst_pairs[i].depth);
         } else {
-            printf(" key:%s val_start_p:%c depth : %d\n", dst_pairs[i].key,  val_p, dst_pairs[i].depth);
+            printf(" key:%s val_start_p:%c end_p:%c depth : %d\n", dst_pairs[i].key,  val_p, val_e, dst_pairs[i].depth);
         }
     }
 

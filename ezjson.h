@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define JSON_TREE_KEY_SIZE 16
+#define JSON_TREE_KEY_SIZE 32
 #define JSON_TREE_VAL_SIZE 256
 
 

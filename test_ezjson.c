@@ -12,7 +12,9 @@ int main() {
                 \"child_child_key3\": \"child_chlid_val3\"\
             }\
         },\
-        \"key4\": 4\
+        \"key4\": 4.9999 , \
+        \"key5\":  -5,\
+        \"key6\": 6.00 ,\
     }";
 
     json_key_val_pair_t pairs[10] = {0, };
